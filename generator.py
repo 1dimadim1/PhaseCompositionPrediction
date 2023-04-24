@@ -6,6 +6,8 @@ import numpy as np
 import time
 from tqdm import tqdm
 
+warnings.filterwarnings("ignore")
+
 # constants:
 P = 101325
 db_name = 'models/sgsol_2021_pycalphad.tdb'
@@ -38,7 +40,8 @@ def getPossiblePhases(db, components):
         # item[1]: name, constituents, sublattices, model_hints
         found_sublattices = 0
         phase = phase_full[1]
-
+        
+        # not_founded = 0
         for sublattice_c in phase.constituents:
             found = False
             for comp in components:
@@ -47,10 +50,10 @@ def getPossiblePhases(db, components):
                     break
             if found:
                 found_sublattices += 1
-            else:
-                break
+            # else:
+            #     not_founded += 1
 
-        if found_sublattices == len(phase.constituents):
+        if found_sublattices == len(phase.constituents) or found_sublattices == len(phase.constituents) -1:
             possible_phases.append(phase.name)
 
     possible_phases.sort()
@@ -140,25 +143,22 @@ def getAmounts(components):
 def getTemp():
     return random.randint(300, 3000)
 
-
-warnings.filterwarnings("ignore")
-
 random.seed(42)
 line = {}
  
 with open('DataSets/main_result.csv', "a") as csv_file:
     header = ['iter', 'T','amounts','Components','phases','ellapsed_time','possible_phases','P', 'Error']
     writer = csv.writer(csv_file, delimiter=';', lineterminator = '\n')
-    writer.writerow(header)
+    # writer.writerow(header)
     rnd_state = random.getstate()
     for j in range(1):
         # TODO: iterate over components
         components = ['ZR', 'MO', 'W', 'TA', 'V', 'CR', 'CO', 'NI']
         print(f'{j} - {components}')
-        for i in tqdm(range(500)):
+        for i in tqdm(range(1000)):
             temp = getTemp()
             amounts = getAmounts(components)
-            if i <= 500:
+            if i < 500:
                 continue
             conditions = parseConditions(temp, amounts, components)
             line = equilibriumRow(conditions, components, temp, amounts, i) 
