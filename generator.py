@@ -158,6 +158,8 @@ with open('DataSets/main_result.csv', "a") as csv_file:
         for i in tqdm(range(500)):
             temp = getTemp()
             amounts = getAmounts(components)
+            if i <= 500:
+                continue
             conditions = parseConditions(temp, amounts, components)
             line = equilibriumRow(conditions, components, temp, amounts, i) 
             writer.writerow(list(line.values()))
