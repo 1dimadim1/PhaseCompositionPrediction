@@ -146,14 +146,14 @@ warnings.filterwarnings("ignore")
 random.seed(42)
 line = {}
  
-with open('DataSets\main_result.csv', "a") as csv_file:
+with open('DataSets/main_result.csv', "a") as csv_file:
     header = ['iter', 'T','amounts','Components','phases','ellapsed_time','possible_phases','P', 'Error']
     writer = csv.writer(csv_file, delimiter=';', lineterminator = '\n')
     writer.writerow(header)
     rnd_state = random.getstate()
     for j in range(1):
         # TODO: iterate over components
-        components = ['Zr', 'Mo', 'W', 'Ta', 'V', 'Cr', 'Co', 'Ni']
+        components = ['ZR', 'MO', 'W', 'TA', 'V', 'CR', 'CO', 'NI']
         print(f'{j} - {components}')
         for i in tqdm(range(500)):
             temp = getTemp()
