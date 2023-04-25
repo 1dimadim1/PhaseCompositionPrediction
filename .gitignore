@@ -1,2 +1,3 @@
 .ipynb_checkpoints
 models/sgsol_2021_pycalphad.tdb
+__pycache__
