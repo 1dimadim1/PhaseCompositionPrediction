@@ -325,8 +325,11 @@ def _compute_phase_values(components, statevar_dict,
             # TODO: most optimal solution would be to take pre-extended arrays as an argument and remove this
             # This still copies the array, but is more efficient than filling
             # an array with np.nan, then copying the existing points
-            append_nans = np.full(desired_shape[:-1] + (desired_shape[-1] - points.shape[-1],), np.nan)
-            expanded_points = np.append(points, append_nans, axis=-1)
+            if desired_shape[-1] >  points.shape[-1]:
+                append_nans = np.full(desired_shape[:-1] + (desired_shape[-1] - points.shape[-1],), np.nan)
+                expanded_points = np.append(points, append_nans, axis=-1)
+            else:
+                expanded_points = points
     if broadcast:
         coordinate_dict.update({key: np.atleast_1d(value) for key, value in statevar_dict.items()})
         output_columns = [str(x) for x in statevar_dict.keys()] + ['points']
