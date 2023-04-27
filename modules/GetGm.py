@@ -1,4 +1,4 @@
-from pycalphad import Database, calculate
+from Calculate import calculate
 import numpy as np
 
 
