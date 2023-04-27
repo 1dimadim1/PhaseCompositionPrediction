@@ -1,4 +1,4 @@
-from Calculate import calculate
+from modules.Calculate import calculate
 import numpy as np
 
 
