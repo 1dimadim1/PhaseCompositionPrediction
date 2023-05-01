@@ -7,6 +7,8 @@ import os
 from modules.GetGm import getGM
 from modules.mask import getComponents, getPhases
 import pandas as pd
+import warnings
+warnings.filterwarnings("ignore")
 
 def parseArray(amounts_str):
     amounts = amounts_str.replace('[', '').replace(']', '')
@@ -48,7 +50,7 @@ df['amounts'] = df['amounts'].apply(parseArray)
 i = df_origin.index[0]
 df_line = []
 for i in tqdm(df_origin.index):
-    if i < 30:
+    if i < 1425:
         continue
     df_line = df_origin.loc[i:i].copy()
     df_line.loc[:,'gm_temp'] = df.loc[i:i].apply(lambda x: getTimeGM(db, x.Components, all_phases, x.possible_phases, x.amounts, x.Temp), axis=1)
