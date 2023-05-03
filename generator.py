@@ -1,10 +1,11 @@
-import csv
-import warnings
 from pycalphad import Database, equilibrium, variables as v
 import random
 import numpy as np
 import time
 from tqdm import tqdm
+from pycalphad.core.utils import filter_phases, unpack_components
+import warnings
+import csv
 
 warnings.filterwarnings("ignore")
 
@@ -34,30 +35,9 @@ def flattenArray(arr):
 
 # Get all possible phases for that components
 def getPossiblePhases(db, components):
-    possible_phases = []
-    for phase_full in db.phases.items():
-        # item[0] - name, item[1] - content
-        # item[1]: name, constituents, sublattices, model_hints
-        found_sublattices = 0
-        phase = phase_full[1]
-        
-        # not_founded = 0
-        for sublattice_c in phase.constituents:
-            found = False
-            for comp in components:
-                if len([species.name for species in sublattice_c if species.name == comp]) > 0:
-                    found = True
-                    break
-            if found:
-                found_sublattices += 1
-            # else:
-            #     not_founded += 1
-
-        if found_sublattices == len(phase.constituents) or found_sublattices == len(phase.constituents) -1:
-            possible_phases.append(phase.name)
-
-    possible_phases.sort()
-    return possible_phases
+    comps = list(components)
+    comps = unpack_components(db, comps)
+    return filter_phases(db, comps)
 
 # TODO: fix ordered_phases
 def filterOrderedPhases(dbf, candidate_phases=None):
@@ -106,8 +86,7 @@ def equilibriumRow(conditions, components, temp, amounts, iter):
     row_values = {}
     founded_phases = []
     possible_phases = getPossiblePhases(db, components)
-    possible_phases = filterOrderedPhases(db, possible_phases)
-    # print(set(possible_phases) - set(filtred_phase))
+    # possible_phases = filterOrderedPhases(db, possible_phases)
 
     tic = time.perf_counter()
     try:
@@ -143,6 +122,7 @@ def getAmounts(components):
 def getTemp():
     return random.randint(300, 3000)
 
+
 random.seed(42)
 line = {}
  
@@ -155,10 +135,10 @@ with open('DataSets/main_result.csv', "a") as csv_file:
         # TODO: iterate over components
         components = ['ZR', 'MO', 'W', 'TA', 'V', 'CR', 'CO', 'NI']
         print(f'{j} - {components}')
-        for i in tqdm(range(1000)):
+        for i in tqdm(range(5000)):
             temp = getTemp()
             amounts = getAmounts(components)
-            if i < 500:
+            if i < 2500:
                 continue
             conditions = parseConditions(temp, amounts, components)
             line = equilibriumRow(conditions, components, temp, amounts, i) 
