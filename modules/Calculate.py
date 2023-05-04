@@ -45,15 +45,18 @@ def hr_point_sample(constraint_jac, constraint_rhs, initial_point, num_points):
     rng = np.random.RandomState(1769)
     for iteration in range(num_points):
         # generate unit direction in null space
-        d = rng.normal(size=(constraint_jac.shape[1] - constraint_jac.shape[0]))
+        d = rng.normal(
+            size=(constraint_jac.shape[1] - constraint_jac.shape[0]))
         d /= np.linalg.norm(d, axis=0)
         proj = np.dot(q2, d)
         # find extent of step direction possible while staying within bounds (0 <= z)
         with np.errstate(divide='ignore'):
             alphas = (min_z - current_z) / proj
         # Need to use small value to prevent constraints binding one sublattice (with proj ~ 0) from binding all dof
-        max_alpha_candidates = alphas[np.logical_and(proj > 1e-6, np.isfinite(alphas))]
-        min_alpha_candidates = alphas[np.logical_and(proj < -1e-6, np.isfinite(alphas))]
+        max_alpha_candidates = alphas[np.logical_and(
+            proj > 1e-6, np.isfinite(alphas))]
+        min_alpha_candidates = alphas[np.logical_and(
+            proj < -1e-6, np.isfinite(alphas))]
         alpha_min = np.min(min_alpha_candidates)
         alpha_max = np.max(max_alpha_candidates)
         # Poor progress; give up on sampling
@@ -65,7 +68,8 @@ def hr_point_sample(constraint_jac, constraint_rhs, initial_point, num_points):
         current_z += new_alpha * proj
         new_feasible_z[iteration, :] = current_z
     if np.any(new_feasible_z < 0):
-        raise ValueError('Constrained sampling generated negative site fractions')
+        raise ValueError(
+            'Constrained sampling generated negative site fractions')
     return new_feasible_z
 
 
@@ -90,10 +94,11 @@ def _sample_phase_constitution(model, sampler, fixed_grid, pdens):
     ndarray of points
     """
     # Eliminate pure vacancy endmembers from the calculation
-    ALLOWED_CHARGE=1E-10
+    ALLOWED_CHARGE = 1E-10
     vacancy_indices = []
     for sublattice in model.constituents:
-        subl_va_indices = [idx for idx, spec in enumerate(sorted(set(sublattice))) if spec.number_of_atoms == 0]
+        subl_va_indices = [idx for idx, spec in enumerate(
+            sorted(set(sublattice))) if spec.number_of_atoms == 0]
         vacancy_indices.append(subl_va_indices)
     if len(vacancy_indices) != len(model.constituents):
         vacancy_indices = None
@@ -114,7 +119,8 @@ def _sample_phase_constitution(model, sampler, fixed_grid, pdens):
         for species in sorted(model.constituents[sublattice]):
             species_charge.append(species.charge*site_ratios[sublattice])
     species_charge = np.array(species_charge)
-    charge_constrained_space = constant_site_ratios and np.any(species_charge != 0)
+    charge_constrained_space = constant_site_ratios and np.any(
+        species_charge != 0)
     # We differentiate between (specifically) charge balance and general linear constraints for future use
     # This simplifies adding future constraints, such as disordered configuration sampling, or site fraction conditions
     # Note that if a phase only consists of site fraction balance constraints,
@@ -138,11 +144,13 @@ def _sample_phase_constitution(model, sampler, fixed_grid, pdens):
                 charge_neutral_endmember_idxs.append(em_idx)
 
         # Find all endmember pairs between the
-        em_pts = [endmembers[em_idx] for em_idx in charge_neutral_endmember_idxs]
+        em_pts = [endmembers[em_idx]
+                  for em_idx in charge_neutral_endmember_idxs]
         for pos_em_idx, neg_em_idx in itertools.product(charge_positive_endmember_idxs, charge_negative_endmember_idxs):
             # Solve equation: Q_{pos}*x + Q_{neg}(1-x) = 0
             x = - Q[neg_em_idx] / (Q[pos_em_idx] - Q[neg_em_idx])
-            em_pts.append(endmembers[pos_em_idx] * x + endmembers[neg_em_idx] * (1-x))
+            em_pts.append(endmembers[pos_em_idx] *
+                          x + endmembers[neg_em_idx] * (1-x))
 
         # Charge neutral endmembers and mixed pseudo-endmembers
         points = np.asarray(em_pts)
@@ -179,14 +187,19 @@ def _sample_phase_constitution(model, sampler, fixed_grid, pdens):
             # Sample additional points which obey the constraints
             # Mean of pseudo-endmembers is feasible by convexity of the space
             initial_point = np.mean(points, axis=0)
-            num_points = (pdens ** 2) * (constraint_jac.shape[1] - constraint_jac.shape[0])
-            extra_points = hr_point_sample(constraint_jac, constraint_rhs, initial_point, num_points)
+            num_points = (pdens ** 2) * \
+                (constraint_jac.shape[1] - constraint_jac.shape[0])
+            extra_points = hr_point_sample(
+                constraint_jac, constraint_rhs, initial_point, num_points)
             points = np.concatenate((points, extra_points))
-            assert np.max(np.abs(constraint_jac.dot(points.T).T - constraint_rhs)) < 1e-6
+            assert np.max(np.abs(constraint_jac.dot(
+                points.T).T - constraint_rhs)) < 1e-6
             if points.shape[0] == 0:
-                warnings.warn(f'{model.phase_name} has zero feasible configurations under the given conditions')
+                warnings.warn(
+                    f'{model.phase_name} has zero feasible configurations under the given conditions')
         else:
-            points = np.concatenate((points, sampler(sublattice_dof, pdof=pdens)))
+            points = np.concatenate(
+                (points, sampler(sublattice_dof, pdof=pdens)))
 
     # Filter out nan's that may have slipped in if we sampled too high a vacancy concentration
     # Issues with this appear to be platform-dependent
@@ -241,9 +254,10 @@ def _compute_phase_values(components, statevar_dict,
         # Broadcast compositions and state variables along orthogonal axes
         # This lets us eliminate an expensive Python loop
         statevars = np.meshgrid(*itertools.chain(statevar_dict.values(),
-                                                     [np.empty(points.shape[-2])]),
-                                    sparse=True, indexing='ij')[:-1]
-        points = broadcast_to(points, tuple(len(np.atleast_1d(x)) for x in statevar_dict.values()) + points.shape[-2:])
+                                                 [np.empty(points.shape[-2])]),
+                                sparse=True, indexing='ij')[:-1]
+        points = broadcast_to(points, tuple(len(np.atleast_1d(x))
+                              for x in statevar_dict.values()) + points.shape[-2:])
     else:
         statevars = list(np.atleast_1d(x) for x in statevar_dict.values())
         statevars_ = []
@@ -256,14 +270,17 @@ def _compute_phase_values(components, statevar_dict,
             statevars_.append(statevar)
         statevars = statevars_
     pure_elements = [list(x.constituents.keys()) for x in components]
-    pure_elements = sorted(set([el.upper() for constituents in pure_elements for el in constituents]))
+    pure_elements = sorted(
+        set([el.upper() for constituents in pure_elements for el in constituents]))
     pure_elements = [x for x in pure_elements if x != 'VA']
     # func may only have support for vectorization along a single axis (no broadcasting)
     # we need to force broadcasting and flatten the result before calling
-    bc_statevars = np.ascontiguousarray([broadcast_to(x, points.shape[:-1]).reshape(-1) for x in statevars])
+    bc_statevars = np.ascontiguousarray(
+        [broadcast_to(x, points.shape[:-1]).reshape(-1) for x in statevars])
     pts = points.reshape(-1, points.shape[-1])
     dof = np.ascontiguousarray(np.concatenate((bc_statevars.T, pts), axis=1))
-    phase_compositions = np.zeros((dof.shape[0], len(pure_elements)), order='F')
+    phase_compositions = np.zeros(
+        (dof.shape[0], len(pure_elements)), order='F')
 
     param_symbols, parameter_array = extract_parameters(parameters)
     parameter_array_length = parameter_array.shape[0]
@@ -273,7 +290,8 @@ def _compute_phase_values(components, statevar_dict,
         phase_record.obj_2d(phase_output, dof)
     else:
         # Vectorized parameter arrays
-        phase_output = np.zeros((dof.shape[0], parameter_array_length), order='C')
+        phase_output = np.zeros(
+            (dof.shape[0], parameter_array_length), order='C')
         phase_record.obj_parameters_2d(phase_output, dof, parameter_array)
 
     for el_idx in range(len(pure_elements)):
@@ -283,7 +301,8 @@ def _compute_phase_values(components, statevar_dict,
     if isinstance(phase_output, (float, int)):
         phase_output = broadcast_to(phase_output, points.shape[:-1])
     if isinstance(phase_compositions, (float, int)):
-        phase_compositions = broadcast_to(phase_output, points.shape[:-1] + (len(pure_elements),))
+        phase_compositions = broadcast_to(
+            phase_output, points.shape[:-1] + (len(pure_elements),))
     phase_output = np.asarray(phase_output, dtype=np.float_)
     if parameter_array_length <= 1:
         phase_output.shape = points.shape[:-1]
@@ -298,13 +317,16 @@ def _compute_phase_values(components, statevar_dict,
             concat_axis = -2
         else:
             concat_axis = -1
-        phase_output = np.concatenate((broadcast_to(largest_energy, output_shape), phase_output), axis=concat_axis)
+        phase_output = np.concatenate(
+            (broadcast_to(largest_energy, output_shape), phase_output), axis=concat_axis)
         phase_names = np.concatenate((broadcast_to('_FAKE_', points.shape[:-2] + (max_tieline_vertices,)),
                                       np.full(points.shape[:-1], phase_record.phase_name, dtype='U' + str(len(phase_record.phase_name)))), axis=-1)
     else:
-        phase_names = np.full(points.shape[:-1], phase_record.phase_name, dtype='U'+str(len(phase_record.phase_name)))
+        phase_names = np.full(
+            points.shape[:-1], phase_record.phase_name, dtype='U'+str(len(phase_record.phase_name)))
     if fake_points:
-        phase_compositions = np.concatenate((np.broadcast_to(np.eye(len(pure_elements)), points.shape[:-2] + (max_tieline_vertices, len(pure_elements))), phase_compositions), axis=-2)
+        phase_compositions = np.concatenate((np.broadcast_to(np.eye(len(
+            pure_elements)), points.shape[:-2] + (max_tieline_vertices, len(pure_elements))), phase_compositions), axis=-2)
 
     coordinate_dict = {'component': pure_elements}
     # Resize 'points' so it has the same number of columns as the maximum
@@ -314,7 +336,8 @@ def _compute_phase_values(components, statevar_dict,
     # In each case, first check if we need to do this...
     # It can be expensive for many points (~14s for 500M points)
     if fake_points:
-        desired_shape = points.shape[:-2] + (max_tieline_vertices + points.shape[-2], maximum_internal_dof)
+        desired_shape = points.shape[:-2] + \
+            (max_tieline_vertices + points.shape[-2], maximum_internal_dof)
         expanded_points = np.full(desired_shape, np.nan)
         expanded_points[..., len(pure_elements):, :points.shape[-1]] = points
     else:
@@ -325,13 +348,15 @@ def _compute_phase_values(components, statevar_dict,
             # TODO: most optimal solution would be to take pre-extended arrays as an argument and remove this
             # This still copies the array, but is more efficient than filling
             # an array with np.nan, then copying the existing points
-            if desired_shape[-1] >  points.shape[-1]:
-                append_nans = np.full(desired_shape[:-1] + (desired_shape[-1] - points.shape[-1],), np.nan)
+            if desired_shape[-1] > points.shape[-1]:
+                append_nans = np.full(
+                    desired_shape[:-1] + (desired_shape[-1] - points.shape[-1],), np.nan)
                 expanded_points = np.append(points, append_nans, axis=-1)
             else:
                 expanded_points = points
     if broadcast:
-        coordinate_dict.update({key: np.atleast_1d(value) for key, value in statevar_dict.items()})
+        coordinate_dict.update({key: np.atleast_1d(value)
+                               for key, value in statevar_dict.items()})
         output_columns = [str(x) for x in statevar_dict.keys()] + ['points']
     else:
         output_columns = ['points']
@@ -343,14 +368,16 @@ def _compute_phase_values(components, statevar_dict,
     data_arrays = {'X': (output_columns + ['component'], np.ascontiguousarray(phase_compositions)),
                    'Phase': (output_columns, phase_names),
                    'Y': (output_columns + ['internal_dof'], expanded_points),
-                   output: (['dim_'+str(i) for i in range(len(phase_output.shape) - (len(output_columns)+len(parameter_column)))] + output_columns + parameter_column, phase_output)
+                   output: (['dim_'+str(i) for i in range(len(phase_output.shape) - (len(output_columns) +
+                            len(parameter_column)))] + output_columns + parameter_column, phase_output)
                    }
     if not broadcast:
         # Add state variables as data variables rather than as coordinates
         for sym, vals in zip(statevar_dict.keys(), statevars):
             data_arrays.update({sym: (output_columns, vals)})
     if parameter_array_length > 1:
-        data_arrays['param_values'] = (['samples', 'param_symbols'], parameter_array)
+        data_arrays['param_values'] = (
+            ['samples', 'param_symbols'], parameter_array)
     return LightDataset(data_arrays, coords=coordinate_dict)
 
 
@@ -415,7 +442,8 @@ def calculate(dbf, comps, phases, mode=None, output='GM', fake_points=False, bro
     points_dict = unpack_kwarg(kwargs.pop('points', None), default_arg=None)
     callables = kwargs.pop('callables', {})
     sampler_dict = unpack_kwarg(kwargs.pop('sampler', None), default_arg=None)
-    fixedgrid_dict = unpack_kwarg(kwargs.pop('grid_points', True), default_arg=True)
+    fixedgrid_dict = unpack_kwarg(kwargs.pop(
+        'grid_points', True), default_arg=True)
     model = kwargs.pop('model', None)
     parameters = parameters or dict()
     if isinstance(parameters, dict):
@@ -426,7 +454,8 @@ def calculate(dbf, comps, phases, mode=None, output='GM', fake_points=False, bro
         comps = [comps]
     comps = sorted(unpack_components(dbf, comps))
     if points_dict is None and broadcast is False:
-        raise ValueError('The \'points\' keyword argument must be specified if broadcast=False is also given.')
+        raise ValueError(
+            'The \'points\' keyword argument must be specified if broadcast=False is also given.')
     nonvacant_components = [x for x in sorted(comps) if x.number_of_atoms > 0]
     nonvacant_elements = get_pure_elements(dbf, comps)
 
@@ -436,32 +465,41 @@ def calculate(dbf, comps, phases, mode=None, output='GM', fake_points=False, bro
     # Consider only the active phases
     list_of_possible_phases = filter_phases(dbf, comps)
     if len(list_of_possible_phases) == 0:
-        raise ConditionError('There are no phases in the Database that can be active with components {0}'.format(comps))
+        raise ConditionError(
+            'There are no phases in the Database that can be active with components {0}'.format(comps))
     active_phases = filter_phases(dbf, comps, phases)
     if len(active_phases) == 0:
-        raise ConditionError('None of the passed phases ({0}) are active. List of possible phases: {1}.'.format(phases, list_of_possible_phases))
+        raise ConditionError('None of the passed phases ({0}) are active. List of possible phases: {1}.'.format(
+            phases, list_of_possible_phases))
 
     if isinstance(output, (list, tuple, set)):
-        raise NotImplementedError('Only one property can be specified in calculate() at a time')
+        raise NotImplementedError(
+            'Only one property can be specified in calculate() at a time')
     output = output if output is not None else 'GM'
 
     # Implicitly add 'N' state variable as a string to keyword arguements if it's not passed
     if kwargs.get('N') is None:
         kwargs['N'] = 1
     if np.any(np.array(kwargs['N']) != 1):
-        raise ConditionError('N!=1 is not yet supported, got N={}'.format(kwargs['N']))
+        raise ConditionError(
+            'N!=1 is not yet supported, got N={}'.format(kwargs['N']))
 
     # TODO: conditions dict of StateVariable instances should become part of the calculate API
-    statevar_strings = [sv for sv in kwargs.keys() if getattr(v, sv) is not None]
+    statevar_strings = [
+        sv for sv in kwargs.keys() if getattr(v, sv) is not None]
     # If we don't do this, sympy will get confused during substitution
-    statevar_dict = dict((v.StateVariable(key), unpack_condition(value)) for key, value in kwargs.items() if key in statevar_strings)
+    statevar_dict = dict((v.StateVariable(key), unpack_condition(value))
+                         for key, value in kwargs.items() if key in statevar_strings)
     # Sort after default state variable check to fix gh-116
-    statevar_dict = OrderedDict(sorted(statevar_dict.items(), key=lambda x: str(x[0])))
-    str_statevar_dict = OrderedDict((str(key), unpack_condition(value)) for (key, value) in statevar_dict.items())
+    statevar_dict = OrderedDict(
+        sorted(statevar_dict.items(), key=lambda x: str(x[0])))
+    str_statevar_dict = OrderedDict((str(key), unpack_condition(
+        value)) for (key, value) in statevar_dict.items())
 
     # Build phase records if they weren't passed
     if phase_records is None:
-        models = instantiate_models(dbf, comps, active_phases, model=model, parameters=parameters)
+        models = instantiate_models(
+            dbf, comps, active_phases, model=model, parameters=parameters)
         phase_records = build_phase_records(dbf, comps, active_phases, statevar_dict,
                                             models=models, parameters=parameters,
                                             output=output, callables=callables,
@@ -471,15 +509,21 @@ def calculate(dbf, comps, phases, mode=None, output='GM', fake_points=False, bro
         # phase_records were provided, instantiated models must also be provided by the caller
         models = model
         if not isinstance(models, Mapping):
-            raise ValueError("A dictionary of instantiated models must be passed to `equilibrium` with the `model` argument if the `phase_records` argument is used.")
-        active_phases_without_models = [name for name in active_phases if not isinstance(models.get(name), Model)]
-        active_phases_without_phase_records = [name for name in active_phases if not isinstance(phase_records.get(name), PhaseRecord)]
+            raise ValueError(
+                "A dictionary of instantiated models must be passed to `equilibrium` with the `model` argument if the `phase_records` argument is used.")
+        active_phases_without_models = [
+            name for name in active_phases if not isinstance(models.get(name), Model)]
+        active_phases_without_phase_records = [
+            name for name in active_phases if not isinstance(phase_records.get(name), PhaseRecord)]
         if len(active_phases_without_phase_records) > 0:
-            raise ValueError(f"phase_records must contain a PhaseRecord instance for every active phase. Missing PhaseRecord objects for {sorted(active_phases_without_phase_records)}")
+            raise ValueError(
+                f"phase_records must contain a PhaseRecord instance for every active phase. Missing PhaseRecord objects for {sorted(active_phases_without_phase_records)}")
         if len(active_phases_without_models) > 0:
-            raise ValueError(f"model must contain a Model instance for every active phase. Missing Model objects for {sorted(active_phases_without_models)}")
+            raise ValueError(
+                f"model must contain a Model instance for every active phase. Missing Model objects for {sorted(active_phases_without_models)}")
 
-    maximum_internal_dof = max(len(models[phase_name].site_fractions) for phase_name in active_phases)
+    maximum_internal_dof = max(
+        len(models[phase_name].site_fractions) for phase_name in active_phases)
     for phase_name in sorted(active_phases):
         mod = models[phase_name]
         phase_record = phase_records[phase_name]
@@ -497,7 +541,8 @@ def calculate(dbf, comps, phases, mode=None, output='GM', fake_points=False, bro
         all_phase_data.append(phase_ds)
 
     fp_offset = len(nonvacant_elements) if fake_points else 0
-    running_total = [fp_offset] + list(np.cumsum([phase_ds['X'].shape[-2] for phase_ds in all_phase_data]))
+    running_total = [
+        fp_offset] + list(np.cumsum([phase_ds['X'].shape[-2] for phase_ds in all_phase_data]))
     islice_by_phase = {phase_name: slice(running_total[phase_idx], running_total[phase_idx+1], None)
                        for phase_idx, phase_name in enumerate(sorted(active_phases))}
     # speedup for single-phase case (found by profiling)
@@ -514,7 +559,8 @@ def calculate(dbf, comps, phases, mode=None, output='GM', fake_points=False, bro
                 arrs.append(getattr(phase_data, var))
             concat_data = np.concatenate(arrs, axis=points_idx)
             concatenated_data_vars[var] = (data_coords, concat_data)
-        final_ds = LightDataset(data_vars=concatenated_data_vars, coords=concatenated_coords)
+        final_ds = LightDataset(
+            data_vars=concatenated_data_vars, coords=concatenated_coords)
     else:
         final_ds = all_phase_data[0]
     final_ds.attrs['phase_indices'] = islice_by_phase

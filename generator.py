@@ -24,6 +24,8 @@ all_phases.sort()
 all_components.sort()
 
 # phase result parser
+
+
 def flattenArray(arr):
     result = []
     for item in arr.flat:
@@ -34,12 +36,16 @@ def flattenArray(arr):
     return result
 
 # Get all possible phases for that components
+
+
 def getPossiblePhases(db, components):
     comps = list(components)
     comps = unpack_components(db, comps)
     return filter_phases(db, comps)
 
 # TODO: fix ordered_phases
+
+
 def filterOrderedPhases(dbf, candidate_phases=None):
     if candidate_phases == None:
         candidate_phases = dbf.phases.keys()
@@ -72,13 +78,16 @@ def phaseToMask(phase, all_phases=all_phases):
     mask = [1 if phase == phase_ else 0 for phase_ in all_phases][::-1]
     return int(''.join(map(str, mask)), 2)
 
+
 def compToMask(components, all_components=all_components):
     components.sort()
     mask = [1 if comp in components else 0 for comp in all_components][::-1]
     return int(''.join(map(str, mask)), 2)
 
+
 def getComponents(int_mask, all_components=all_components):
     return [all_components[i] for i in range(len(all_components)) if (int_mask & (1 << i)) > 0]
+
 
 def equilibriumRow(conditions, components, temp, amounts, iter):
     calc_components = components.copy()
@@ -102,6 +111,7 @@ def equilibriumRow(conditions, components, temp, amounts, iter):
 
     return row_values
 
+
 def parseConditions(temp, amounts, components, P=P):
     conditions = {v.T: temp, v.P: P}
 
@@ -111,6 +121,7 @@ def parseConditions(temp, amounts, components, P=P):
 
     return conditions
 
+
 def getAmounts(components):
     amounts = [0.05]*len(components)
     for i in range(len(amounts)):
@@ -119,16 +130,19 @@ def getAmounts(components):
     return amounts
 
 # TODO: make random temperature more stable diffuse
+
+
 def getTemp():
     return random.randint(300, 3000)
 
 
 random.seed(42)
 line = {}
- 
+
 with open('DataSets/main_result.csv', "a") as csv_file:
-    header = ['iter', 'T','amounts','Components','phases','ellapsed_time','possible_phases','P', 'Error']
-    writer = csv.writer(csv_file, delimiter=';', lineterminator = '\n')
+    header = ['iter', 'T', 'amounts', 'Components', 'phases',
+              'ellapsed_time', 'possible_phases', 'P', 'Error']
+    writer = csv.writer(csv_file, delimiter=';', lineterminator='\n')
     # writer.writerow(header)
     rnd_state = random.getstate()
     for j in range(1):
@@ -141,7 +155,7 @@ with open('DataSets/main_result.csv', "a") as csv_file:
             if i < 2500:
                 continue
             conditions = parseConditions(temp, amounts, components)
-            line = equilibriumRow(conditions, components, temp, amounts, i) 
+            line = equilibriumRow(conditions, components, temp, amounts, i)
             writer.writerow(list(line.values()))
     # TODO: Save random state in a file and continue from state
     print('Done!')
